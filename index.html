@@ -1,6 +1,6 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#0b0d10">
+<meta name="dash-version" content="v3"><meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#0b0d10">
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Bots">
 <link rel="apple-touch-icon" href="icon.png"><link rel="icon" href="icon.png"><link rel="manifest" href="manifest.json">
@@ -34,12 +34,29 @@ select{background:#0f1216;color:var(--t1);border:1px solid var(--line);border-ra
 .chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--t2);background:#1f262e;border-radius:99px;padding:1px 8px}
 .chip i{width:6px;height:6px;border-radius:50%}
 .tx{margin-top:3px}.foot{color:var(--t3);font-size:11.5px;margin-top:10px}
-.mtabs{display:none}
+.mtabs,.mini,.stats,.dvbtn{display:none}
 .lock{max-width:360px;margin:20vh auto;text-align:center;color:var(--t2)}
+.sec2{margin-top:14px}
 @media(max-width:1000px){aside{display:none}}
-@media(max-width:760px){main{padding:16px 12px 40px;padding-top:max(16px,env(safe-area-inset-top))}
- .mtabs{display:flex;position:sticky;top:0;z-index:5;margin:14px 0 0;background:rgba(11,13,16,.92);backdrop-filter:blur(10px)}
- .cols{display:block;margin-top:12px}.mtabs .tabs{width:100%}.tlbar{flex-direction:column;align-items:stretch}.tlbar .tabs{flex-wrap:nowrap;overflow-x:auto}.panel{display:none}.panel.show{display:block}}
+@media(max-width:820px) and (orientation:portrait){
+ body:not(.dv) main{padding:12px 12px 40px}
+ body:not(.dv) .cols{display:flex;flex-direction:column;gap:12px;margin-top:12px}
+ body:not(.dv) .hide{display:block!important}
+ body:not(.dv) .dtonly{display:none}
+ body:not(.dv) .tlbar{flex-direction:column;align-items:stretch}
+ body:not(.dv) .tlbar .tabs{flex-wrap:nowrap;overflow-x:auto}
+ body:not(.dv) .row{padding:6px 0}body:not(.dv) .row .tm{flex-basis:54px}
+ body:not(.dv) .wc{padding:9px;margin-bottom:6px}
+ .stats{display:flex;gap:8px;margin-top:12px}
+ .stat{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 10px;text-decoration:none;color:var(--t2);font-size:11.5px}
+ .stat b{display:block;font-size:20px;color:var(--t1)}
+ .mini{display:flex;position:sticky;top:0;z-index:9;align-items:center;justify-content:space-between;gap:8px;margin:-12px -12px 0;padding:10px 12px;padding-top:max(10px,env(safe-area-inset-top));background:rgba(11,13,16,.9);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);font-weight:650}
+ .dvbtn{display:inline-block;background:#1f262e;color:var(--t1);border:1px solid var(--line);border-radius:99px;padding:4px 10px;font:inherit;font-size:12px}
+ body.dv aside{display:none}
+ body.dv main{width:1180px;zoom:var(--z);padding:16px}
+ body.dv .mini{margin:-16px -16px 0;padding:10px 16px}
+}
+.hide{display:none}
 </style></head><body><div id="root"></div>
 <script>
 const PAL=["#4c9aff","#a78bfa","#34d399","#f472b6","#fbbf24","#60a5fa","#fb7185","#2dd4bf","#f97316","#c084fc","#84cc16"];
@@ -72,25 +89,29 @@ function R(){
    ${bots.map(b=>`<div class="sb ${S.bot===b?"on":""}" onclick="S.bot='${esc(b)}';S.m='timeline';R()">${av(b,24)}${esc(b)}<span class="n">${cnt(b)||""}</span></div>`).join("")}
   </aside>
   <main>
-   <h1>Bot Activity Dashboard</h1>
+   <div class="mini"><span>Bot Activity</span><button class="dvbtn" onclick="tdv()">${document.body.classList.contains('dv')?'Phone view':'Desktop view'}</button></div>
+   <h1 style="margin-top:12px">Bot Activity Dashboard</h1>
    <div class="sub">What your bots did this week, what is still running, and what waits on you.</div>
    <div class="sum">As of ${esc(D.lastUpdated)} · ${bots.length} bots active · ${D.waiting.length} items waiting on you. ${esc(D.first||"")}</div>
-   <div class="mtabs">${tabs([["waiting",`Waiting ${D.waiting.length}`],["timeline","Timeline"],["tasks","Tasks"]],S.m,"m")}</div>
+   <div class="stats"><a class="stat" href="#" onclick="go('sw');return false"><b>${D.waiting.length}</b>Waiting</a><a class="stat" href="#" onclick="go('sp');return false"><b>${D.inProgress.length}</b>In progress</a><a class="stat" href="#" onclick="go('sf');return false"><b>${D.finished.length}</b>Finished</a></div>
    <div class="cols">
-    <section class="panel ${S.m==="waiting"?"show":""}"><div class="ph"><b>Waiting for Harish</b><span class="cnt">${D.waiting.length}</span></div>
+    <section id="sw" class="panel"><div class="ph"><b>Waiting for Harish</b><span class="cnt">${D.waiting.length}</span></div>
      ${D.waiting.map(w=>`<div class="wc">${av(w.bot,28)}<div style="min-width:0;flex:1"><div class="meta"><span class="bn">${esc(w.bot)}</span>${w.time?`<span class="tm">${esc(w.time)}</span>`:""}${w.verified?"":`<span class="uv">unverified</span>`}</div><div class="wt">${esc(w.title)}</div><div class="wd">${esc(w.detail)}</div>${w.due?`<div class="due">Due ${esc(w.due)}</div>`:""}</div></div>`).join("")}
     </section>
-    <section class="panel ${S.m==="timeline"?"show":""}"><div class="ph"><b>Timeline</b><span class="cnt">${ev.length}</span></div>
+    <section class="panel"><div class="ph"><b>Timeline</b><span class="cnt">${ev.length}</span></div>
      <div class="tlbar">${tabs(dayOpts,S.day,"day")}<select onchange="S.bot=this.value;R()"><option value="all">All bots</option>${bots.map(b=>`<option ${S.bot===b?"selected":""}>${esc(b)}</option>`).join("")}</select></div>
      ${groups.map(g=>`<div class="dh">${DOW[g]||""} ${g}</div>${ev.filter(e=>e.date===g).map(e=>`<div class="row"><span class="tm">${esc(e.time)}</span>${av(e.bot,24)}<div style="min-width:0;flex:1">${chip(e.bot)}<div class="tx">${esc(e.text)}</div></div></div>`).join("")}`).join("")}
      <div class="foot">All times IST.</div>
     </section>
-    <section class="panel ${S.m==="tasks"?"show":""}"><div class="ph"><b>${S.task==="done"?"Finished":"In progress"}</b></div>
-     ${tabs([["prog",`In progress ${D.inProgress.length}`],["done",`Finished ${D.finished.length}`]],S.task,"task")}
-     ${tasks.map(r=>`<div class="row">${av(r.bot,24)}<div style="min-width:0;flex:1"><div class="meta"><span class="bn">${esc(r.bot)}</span><span class="tm">${esc(r.time)}</span></div><div class="tx">${S.task==="done"?"✓ ":""}${esc(r.title)}</div></div></div>`).join("")}
+    <section class="panel"><div class="dtonly">${tabs([["prog",`In progress ${D.inProgress.length}`],["done",`Finished ${D.finished.length}`]],S.task,"task")}</div>
+     ${[["prog","In progress",D.inProgress,"sp"],["done","Finished",D.finished,"sf"]].map(([k,l,arr,id])=>`<div id="${id}" class="sec2 ${S.task===k?"":"hide"}"><div class="ph"><b>${l}</b><span class="cnt">${arr.length}</span></div>${arr.map(r=>`<div class="row">${av(r.bot,24)}<div style="min-width:0;flex:1"><div class="meta"><span class="bn">${esc(r.bot)}</span><span class="tm">${esc(r.time)}</span></div><div class="tx">${k==="done"?"✓ ":""}${esc(r.title)}</div></div></div>`).join("")}</div>`).join("")}
      <div class="foot">Quiet this week: ${esc(D.idleChecked.join(", "))}.</div>
     </section>
    </div></main></div>`;
 }
+function fit(){document.documentElement.style.setProperty('--z',Math.min(1,innerWidth/1180))}
+function tdv(){const on=!document.body.classList.contains('dv');document.body.classList.toggle('dv',on);localStorage.setItem('dv',on?'1':'0');fit();R()}
+function go(id){const e=document.getElementById(id);if(e)e.scrollIntoView({behavior:'smooth',block:'start'})}
+if(localStorage.getItem('dv')==='1')document.body.classList.add('dv');fit();addEventListener('resize',fit);
 load().then(d=>{if(!d)throw 0;D=d;R()}).catch(()=>{document.getElementById("root").innerHTML='<div class="lock">🔒<br>This dashboard needs its private link.</div>'});
 </script></body></html>
