@@ -1,5 +1,5 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8">
-<meta name="dash-version" content="v6">
+<meta name="dash-version" content="v7">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#0c0d0f">
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
@@ -82,7 +82,7 @@ async function load(){const k=new URLSearchParams(location.hash.slice(1)).get("k
  const enc=await(await fetch("data.enc.json?"+Date.now(),{cache:"no-store"})).json();
  const key=await crypto.subtle.importKey("raw",b64(k.replace(/-/g,"+").replace(/_/g,"/")),"AES-GCM",false,["decrypt"]);
  return JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({name:"AES-GCM",iv:b64(enc.iv)},key,b64(enc.ct))));}
-let D,S={proj:null,bot:null,ni:0,menu:null,open:null,all:false,day:"all",fbot:"all"};
+let D,S={view:'home',proj:null,bot:null,ni:0,menu:null,open:null,all:false,day:"all",fbot:"all"};
 // IST helpers: timestamps are IST wall-clock strings
 const istNow=()=>new Date(Date.now()+(330+new Date().getTimezoneOffset())*60000);
 const P=s=>{const [d,t]=s.split("T");const [y,m,dd]=d.split("-").map(Number);const [h,mi]=t.split(":").map(Number);return new Date(y,m-1,dd,h,mi)};
@@ -104,6 +104,7 @@ function act(id,action){const it=[...D.waiting,...D.inProgress].find(x=>x.id===i
  const m=pend();m.items[id]=action;localStorage.setItem("pend2",JSON.stringify(m));S.open=null;S.menu=null;R();
  const t=document.createElement("div");t.className="toast";t.textContent="Sent — I'll confirm in Grok Bot chat";document.body.appendChild(t);setTimeout(()=>t.remove(),3500);
  window.location.href=`mailto:${TO}?subject=${encodeURIComponent("DASH: "+action+" "+it.id)}&body=${encodeURIComponent(body)}`;}
+const rcp=x=>(x.receipts||[]).length?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">${x.receipts.map(r=>`<a href="${/^https?:/.test(r.href)?esc(r.href):'#'}" target="_blank" rel="noopener" style="font-size:11.5px;color:#9cc0ff;border:1px solid #2a3a57;border-radius:99px;padding:1px 8px;text-decoration:none" title="${esc(r.href)}">🧾 ${esc(r.label||'receipt')}</a>`).join('')}</div>`:'';
 const set=o=>{Object.assign(S,o);R()};
 function greet(){const h=istNow().getHours();return h<12?"Good morning":h<17?"Good afternoon":h<21?"Good evening":"Good night"}
 function R(){
@@ -116,8 +117,8 @@ function R(){
  const feedAll=D.timeline.filter(e=>ok(e)&&(S.day==="all"||dkey(e.at)===S.day)&&(S.fbot==="all"||e.bot===S.fbot));
  const days=[...new Set(D.timeline.map(e=>dkey(e.at)))].slice(0,5);
  const pc=p=>D.waiting.filter(x=>x.project===p).length+D.inProgress.filter(x=>x.project===p).length;
- const verb=v=>v==="asked"?"asked":v==="started"?"started":"completed";
- const feedRow=e=>`<div class="r">${av(e.bot,24)}<div class="x"><b>${esc(e.bot)}</b> ${verb(e.verb)} <em>${esc(e.text)}</em></div><span class="tm">${S.all?hm(e.at):ago(e.at)}</span></div>`;
+ const verb=v=>v==="asked"?"asked":v==="started"?"started":v==="failed"?"failed":"completed";
+ const feedRow=e=>`<div class="r">${av(e.bot,24)}<div class="x"><b>${esc(e.bot)}</b> ${verb(e.verb)} <em>${esc(e.text)}</em>${rcp(e)}</div><span class="tm">${S.all?hm(e.at):ago(e.at)}</span></div>`;
  const menuBtns=id=>`<div class="mpop"><button onclick="act('${id}','Snooze 1 day')">⏰ Snooze 1 day</button><button onclick="act('${id}','Snooze 3 days')">⏰ Snooze 3 days</button><button onclick="act('${id}','Dismiss')" style="color:var(--red)">✕ Dismiss</button></div>`;
  const needs=cur?`<div class="card">
    <div class="nh">${av(cur.bot,26,1)}<span class="bn">${esc(cur.bot)}</span><span class="ti">${esc(cur.title)}</span><span class="ago">${cur.at?(cur.timeApprox?"~":"")+ago(cur.at):""}</span>${cur.verified?"":`<span class="uv">unverified</span>`}
@@ -138,24 +139,29 @@ function R(){
    <div class="feed">${[...new Set(feedAll.map(e=>dkey(e.at)))].map(k=>`<div class="dh">${esc(dlabel(k))}</div>${feedAll.filter(e=>dkey(e.at)===k).map(feedRow).join("")}`).join("")}</div><div style="color:var(--t3);font-size:11.5px;margin-top:8px">Times in IST.</div></div>`:"";
  const routines=D.routinesToday.filter(r=>!S.bot||r.bot===S.bot);
  const IP=D.inProgress.filter(ok),FN=D.finished.filter(ok);
- const tkCard=(x,fin)=>`<div class="tk">${av(x.bot,24)}<div style="flex:1;min-width:0"><div class="tt">${fin?"✓ ":""}${esc(x.title)}</div><div class="mt">${esc(x.bot)} · ${ago(x.at)}</div>
+ const tkCard=(x,fin)=>`<div class="tk">${av(x.bot,24)}<div style="flex:1;min-width:0"><div class="tt">${fin?"✓ ":""}${esc(x.title)}</div><div class="mt">${esc(x.bot)} · ${ago(x.at)}</div>${fin?rcp(x):""}
    ${!fin?(pm[x.id]?`<div style="margin-top:6px"><span class="pend">⏳ Pending</span></div>`:S.open===x.id?`<textarea class="note" id="n-${x.id}" placeholder="Ask ${esc(x.bot)}…"></textarea><div class="btns"><button class="b pri sm" onclick="act('${x.id}','Ask bot')">Send</button><button class="b sm" onclick="set({open:null})">Cancel</button></div>`:`<div style="margin-top:6px"><button class="b sm" onclick="set({open:'${x.id}'})">💬 Ask bot</button></div>`):""}</div></div>`;
  const detail=S.bot?(()=>{const b=S.bot,x=B(b);return `<div class="card detail"><div class="dhd">${av(b,44,1)}<div><div style="font-weight:650;font-size:17px">${esc(b)} ${stp(x.status)}</div><div style="color:var(--t2);font-size:13px">${esc(x.activity)}</div></div><button class="b sm" style="margin-left:auto" onclick="set({bot:null,ni:0})">✕ Close</button></div>
    <div class="lbl" style="margin-top:16px">Recent activity</div><div class="feed">${D.timeline.filter(e=>e.bot===b).slice(0,8).map(feedRow).join("")||'<div style="color:var(--t3)">No recent activity.</div>'}</div></div>`})():"";
  document.getElementById("root").innerHTML=`<div class="app">
  <aside>
   <div class="ws"><div class="lg">H</div><div><b>${esc(D.workspace)}</b><small>Harish's bots</small></div></div>
-  <div class="nav ${!S.proj&&!S.bot?"on":""}" onclick="set({proj:null,bot:null,ni:0});document.body.classList.remove('open')">🏠 Home<span class="c">${D.waiting.length}</span></div>
+  <div class="nav ${!S.proj&&!S.bot?"on":""}" onclick="set({view:'home',proj:null,bot:null,ni:0});document.body.classList.remove('open')">🏠 Home<span class="c">${D.waiting.length}</span></div>
+  <div class="nav ${S.view==='routines'?"on":""}" onclick="set({view:'routines',bot:null});document.body.classList.remove('open');scrollTo(0,0)">🔁 Routines<span class="c" style="background:#222;color:var(--t3)">${(D.routinesToday||[]).length+(D.routinesWeekly||[]).length}</span></div>
   <div class="sh"><span>Your squad</span><span>${bots.length}</span></div>
-  ${bots.map(b=>`<div class="mem ${S.bot===b?"on":""}" onclick="set({bot:'${esc(b)}',ni:0});document.body.classList.remove('open');scrollTo(0,0)">${av(b,30,1)}<div style="min-width:0;flex:1"><div class="nm">${esc(b)} ${stp(B(b).status)}</div><div class="act">${esc(B(b).activity)}</div></div></div>`).join("")}
+  ${bots.map(b=>`<div class="mem ${S.bot===b?"on":""}" onclick="set({view:'home',bot:'${esc(b)}',ni:0});document.body.classList.remove('open');scrollTo(0,0)">${av(b,30,1)}<div style="min-width:0;flex:1"><div class="nm">${esc(b)} ${stp(B(b).status)}</div><div class="act">${esc(B(b).activity)}</div></div></div>`).join("")}
   <div class="sh"><span>Projects</span></div>
   ${D.projects.map(p=>`<div class="proj ${S.proj===p?"on":""}" onclick="set({proj:S.proj==='${esc(p)}'?null:'${esc(p)}',bot:null,ni:0});document.body.classList.remove('open')">📁 ${esc(p)}<span class="c">${pc(p)||""}</span></div>`).join("")}
   <div style="color:var(--t3);font-size:11px;margin:20px 8px 0">Quiet this week: ${esc(D.idleChecked.join(", "))}.</div>
  </aside>
  <main>
-  <div class="top"><button class="ham" onclick="document.body.classList.add('open')">☰</button><span class="t">${S.bot?esc(S.bot):S.proj?esc(S.proj):"Home"}</span><span class="when">Updated ${hm(D.lastUpdated)} IST</span></div>
+  <div class="top"><button class="ham" onclick="document.body.classList.add('open')">☰</button><span class="t">${S.view==='routines'?"Routines":S.bot?esc(S.bot):S.proj?esc(S.proj):"Home"}</span><span class="when">Updated ${hm(D.lastUpdated)} IST</span></div>
   <div class="wrap">
    <div class="strip">${bots.map(b=>`<button class="s" onclick="set({bot:S.bot==='${esc(b)}'?null:'${esc(b)}',ni:0})">${av(b,40,1)}<span>${esc(b.split(" ").slice(-1)[0])}</span></button>`).join("")}</div>
+${S.view==='routines'?`<h1>Routines</h1><p class="lead">What repeats, who owns it, and how its last run went.</p>
+   <div class="lbl">Daily and today</div><div class="card rt">${(D.routinesToday||[]).map(r=>`<div class="r"><span class="tm">${esc(r.time)}</span><span class="nm">${esc(r.name)}${r.freq?`<span style="color:var(--t3);font-size:11.5px;font-weight:400"> · ${esc(r.freq)}</span>`:""}<div style="font-size:11.5px;color:${r.result==='failed'?'var(--red)':'var(--t3)'};font-weight:400">${r.lastRun?`Last run ${ago(r.lastRun)} · ${esc(r.result)}${r.note?' · '+esc(r.note):''}`:'No run reported yet'}</div></span><span class="ow">${av(r.bot,20)}${esc(r.bot)}</span></div>`).join("")}</div>
+   <div class="lbl">Weekly and periodic</div><div class="card rt">${(D.routinesWeekly||[]).map(r=>`<div class="r"><span class="tm">${esc(r.time)}</span><span class="nm">${esc(r.name)}</span><span class="ow">${av(r.bot,20)}${esc(r.bot)}</span></div>`).join("")}</div>
+   <div class="foot">Bots report runs with halo-log routine. Updated ${hm(D.lastUpdated)} IST.</div>`:`
    ${S.proj||S.bot?`<div class="filt">Filtered: ${esc(S.bot||S.proj)} <button class="b ghost sm" style="min-height:0;padding:0" onclick="set({proj:null,bot:null,ni:0})">✕</button></div>`:""}
    ${detail}
    ${S.bot?"":`<h1>${greet()}, ${esc(D.user)}</h1>
@@ -168,8 +174,10 @@ function R(){
    <div class="lbl">Tasks</div>
    <div class="board"><div class="col"><h3>In progress <span class="cnt">${IP.length}</span></h3>${IP.map(x=>tkCard(x,0)).join("")}</div>
    <div class="col"><h3>Finished <span class="cnt">${FN.length}</span></h3>${FN.map(x=>tkCard(x,1)).join("")}</div></div>
-   <div class="foot">Halo · data as of ${esc(D.lastUpdated.replace("T"," "))} IST · actions open Mail, nothing is sent without you</div>
+   <div class="foot">Halo · data as of ${esc(D.lastUpdated.replace("T"," "))} IST · actions open Mail, nothing is sent without you</div>`}
   </div></main></div>`;
 }
-load().then(d=>{if(!d)throw 0;D=d;R()}).catch(()=>{document.getElementById("root").innerHTML='<div class="lock">🔒<br>This dashboard needs its private link.</div>'});
+load().then(d=>{if(!d)throw 0;D=d;R();
+ setInterval(async()=>{try{const n=await load();if(n&&n.dataVersion!==D.dataVersion){D=n;const a=document.activeElement;if(!(a&&a.tagName==='TEXTAREA'))R()}}catch(e){}},60000);
+}).catch(()=>{document.getElementById("root").innerHTML='<div class="lock">🔒<br>This dashboard needs its private link.</div>'});
 </script></body></html>
