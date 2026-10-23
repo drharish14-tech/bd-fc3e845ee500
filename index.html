@@ -1,6 +1,6 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="dash-version" content="v3"><meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#0b0d10">
+<meta name="dash-version" content="v4"><meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#0b0d10">
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Bots">
 <link rel="apple-touch-icon" href="icon.png"><link rel="icon" href="icon.png"><link rel="manifest" href="manifest.json">
@@ -57,6 +57,13 @@ select{background:#0f1216;color:var(--t1);border:1px solid var(--line);border-ra
  body.dv .mini{margin:-16px -16px 0;padding:10px 16px}
 }
 .hide{display:none}
+.acts{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.pill{display:inline-flex;align-items:center;gap:5px;min-height:34px;background:#1f262e;color:var(--t1);border:1px solid var(--line);border-radius:99px;padding:4px 12px;font:inherit;font-size:12.5px;cursor:pointer}
+.pill.pri{background:#173a2a;border-color:#245c41;color:#7ee2b0}.pill.dng{color:#f19a9a}
+.note{width:100%;margin-top:8px;background:#0f1216;color:var(--t1);border:1px solid var(--line);border-radius:8px;padding:8px;font:inherit;font-size:13px;min-height:64px}
+.pend{color:#7fb6ff;border:1px solid #29466d;border-radius:99px;padding:0 6px;font-size:10.5px}
+.wc.pending{opacity:.65}
+.toast{position:fixed;left:50%;bottom:max(24px,env(safe-area-inset-bottom));transform:translateX(-50%);background:#1d2630;border:1px solid #2c3a48;color:var(--t1);padding:10px 16px;border-radius:12px;font-size:13px;z-index:50;box-shadow:0 8px 24px #0008}
 </style></head><body><div id="root"></div>
 <script>
 const PAL=["#4c9aff","#a78bfa","#34d399","#f472b6","#fbbf24","#60a5fa","#fb7185","#2dd4bf","#f97316","#c084fc","#84cc16"];
@@ -71,7 +78,19 @@ async function load(){
   const pt=await crypto.subtle.decrypt({name:"AES-GCM",iv:b64(enc.iv)},key,b64(enc.ct));
   return JSON.parse(new TextDecoder().decode(pt));
 }
-let D,S={day:"all",bot:"all",task:"done",m:"timeline"};
+const TO="harish+dash@mail.grokbot.com";
+function pendMap(){try{const m=JSON.parse(localStorage.getItem("pend")||"{}");return m.v===D.dataVersion?m:{v:D.dataVersion,items:{}}}catch(e){return {v:D.dataVersion,items:{}}}}
+function find(id){return [...D.waiting,...D.inProgress].find(x=>x.id===id)}
+function act(id,action){
+  const it=find(id);if(!it)return;
+  const ta=document.getElementById("n-"+id);const note=ta?ta.value.trim():"";
+  const body=`Item: ${it.id}\nTitle: ${it.title}\nBot: ${it.bot}\nAction: ${action}\nNote: ${note||"-"}\n\n(Sent from Bot Activity Dashboard)`;
+  const m=pendMap();m.items[id]=action;localStorage.setItem("pend",JSON.stringify(m));S.open=null;R();
+  const t=document.createElement("div");t.className="toast";t.textContent="Sent — I'll confirm in Grok Bot chat";document.body.appendChild(t);setTimeout(()=>t.remove(),3500);
+  window.location.href=`mailto:${TO}?subject=${encodeURIComponent("DASH: "+action+" "+it.id)}&body=${encodeURIComponent(body)}`;
+}
+function noteBox(id,label){return S.open===id?`<textarea class="note" id="n-${id}" placeholder="Note for ${label}…"></textarea><div class="acts"><button class="pill pri" onclick="act('${id}','Edit/Ask bot')">✉️ Send note</button><button class="pill" onclick="S.open=null;R()">Cancel</button></div>`:""}
+let D,S={open:null,day:"all",bot:"all",task:"done",m:"timeline"};
 const col=b=>PAL[(D.bots[b]?.color??0)%PAL.length], ic=b=>D.bots[b]?.icon??"•";
 const av=(b,s)=>`<div class="av" style="width:${s}px;height:${s}px;background:${col(b)}26;box-shadow:inset 0 0 0 1.5px ${col(b)};font-size:${Math.round(s*.52)}px">${ic(b)}</div>`;
 const chip=b=>`<span class="chip"><i style="background:${col(b)}"></i>${esc(b)}</span>`;
@@ -96,7 +115,7 @@ function R(){
    <div class="stats"><a class="stat" href="#" onclick="go('sw');return false"><b>${D.waiting.length}</b>Waiting</a><a class="stat" href="#" onclick="go('sp');return false"><b>${D.inProgress.length}</b>In progress</a><a class="stat" href="#" onclick="go('sf');return false"><b>${D.finished.length}</b>Finished</a></div>
    <div class="cols">
     <section id="sw" class="panel"><div class="ph"><b>Waiting for Harish</b><span class="cnt">${D.waiting.length}</span></div>
-     ${D.waiting.map(w=>`<div class="wc">${av(w.bot,28)}<div style="min-width:0;flex:1"><div class="meta"><span class="bn">${esc(w.bot)}</span>${w.time?`<span class="tm">${esc(w.time)}</span>`:""}${w.verified?"":`<span class="uv">unverified</span>`}</div><div class="wt">${esc(w.title)}</div><div class="wd">${esc(w.detail)}</div>${w.due?`<div class="due">Due ${esc(w.due)}</div>`:""}</div></div>`).join("")}
+     ${D.waiting.map(w=>`<div class="wc ${pendMap().items[w.id]?"pending":""}">${av(w.bot,28)}<div style="min-width:0;flex:1"><div class="meta"><span class="bn">${esc(w.bot)}</span>${w.time?`<span class="tm">${esc(w.time)}</span>`:""}${w.verified?"":`<span class="uv">unverified</span>`}</div><div class="wt">${esc(w.title)}</div><div class="wd">${esc(w.detail)}</div>${w.due?`<div class="due">Due ${esc(w.due)}</div>`:""}${pendMap().items[w.id]?`<div class="acts"><span class="pend">⏳ pending: ${esc(pendMap().items[w.id])}</span></div>`:`<div class="acts"><button class="pill pri" onclick="act('${w.id}','Approve')">✅ Approve</button><button class="pill" onclick="S.open='${w.id}';R()">💬 Edit / Ask bot</button><button class="pill" onclick="act('${w.id}','Snooze 1 day')">⏰ 1d</button><button class="pill" onclick="act('${w.id}','Snooze 3 days')">⏰ 3d</button><button class="pill dng" onclick="act('${w.id}','Dismiss')">✕ Dismiss</button></div>${noteBox(w.id,esc(w.bot))}`}</div></div>`).join("")}
     </section>
     <section class="panel"><div class="ph"><b>Timeline</b><span class="cnt">${ev.length}</span></div>
      <div class="tlbar">${tabs(dayOpts,S.day,"day")}<select onchange="S.bot=this.value;R()"><option value="all">All bots</option>${bots.map(b=>`<option ${S.bot===b?"selected":""}>${esc(b)}</option>`).join("")}</select></div>
@@ -104,7 +123,7 @@ function R(){
      <div class="foot">All times IST.</div>
     </section>
     <section class="panel"><div class="dtonly">${tabs([["prog",`In progress ${D.inProgress.length}`],["done",`Finished ${D.finished.length}`]],S.task,"task")}</div>
-     ${[["prog","In progress",D.inProgress,"sp"],["done","Finished",D.finished,"sf"]].map(([k,l,arr,id])=>`<div id="${id}" class="sec2 ${S.task===k?"":"hide"}"><div class="ph"><b>${l}</b><span class="cnt">${arr.length}</span></div>${arr.map(r=>`<div class="row">${av(r.bot,24)}<div style="min-width:0;flex:1"><div class="meta"><span class="bn">${esc(r.bot)}</span><span class="tm">${esc(r.time)}</span></div><div class="tx">${k==="done"?"✓ ":""}${esc(r.title)}</div></div></div>`).join("")}</div>`).join("")}
+     ${[["prog","In progress",D.inProgress,"sp"],["done","Finished",D.finished,"sf"]].map(([k,l,arr,id])=>`<div id="${id}" class="sec2 ${S.task===k?"":"hide"}"><div class="ph"><b>${l}</b><span class="cnt">${arr.length}</span></div>${arr.map(r=>`<div class="row">${av(r.bot,24)}<div style="min-width:0;flex:1"><div class="meta"><span class="bn">${esc(r.bot)}</span><span class="tm">${esc(r.time)}</span></div><div class="tx">${k==="done"?"✓ ":""}${esc(r.title)}</div>${k==="prog"?(pendMap().items[r.id]?`<div class="acts"><span class="pend">⏳ pending</span></div>`:(S.open===r.id?noteBox(r.id,esc(r.bot)):`<div class="acts"><button class="pill" onclick="S.open='${r.id}';R()">💬 Ask bot</button></div>`)):""}</div></div>`).join("")}</div>`).join("")}
      <div class="foot">Quiet this week: ${esc(D.idleChecked.join(", "))}.</div>
     </section>
    </div></main></div>`;
