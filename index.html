@@ -1,5 +1,5 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8">
-<meta name="dash-version" content="v5">
+<meta name="dash-version" content="v6">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#0c0d0f">
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
@@ -105,7 +105,7 @@ function act(id,action){const it=[...D.waiting,...D.inProgress].find(x=>x.id===i
  const t=document.createElement("div");t.className="toast";t.textContent="Sent — I'll confirm in Grok Bot chat";document.body.appendChild(t);setTimeout(()=>t.remove(),3500);
  window.location.href=`mailto:${TO}?subject=${encodeURIComponent("DASH: "+action+" "+it.id)}&body=${encodeURIComponent(body)}`;}
 const set=o=>{Object.assign(S,o);R()};
-function greet(){const h=istNow().getHours();return h<12?"Good morning":h<17?"Good afternoon":"Good evening"}
+function greet(){const h=istNow().getHours();return h<12?"Good morning":h<17?"Good afternoon":h<21?"Good evening":"Good night"}
 function R(){
  const bots=Object.keys(D.bots);const pm=pend().items;
  const W=D.waiting.filter(ok);const cur=W.length?W[S.ni%W.length]:null;
