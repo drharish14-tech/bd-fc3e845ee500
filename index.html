@@ -1,0 +1,96 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#0b0d10">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Bots">
+<link rel="apple-touch-icon" href="icon.png"><link rel="icon" href="icon.png"><link rel="manifest" href="manifest.json">
+<title>Bot Activity Dashboard</title>
+<style>
+:root{--bg:#0b0d10;--side:#111418;--panel:#14181d;--card:#1a1f26;--line:#252b33;--t1:#e9edf2;--t2:#a7b0bb;--t3:#6f7a86;--acc:#4c9aff;--warn:#f5a524}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--t1);font:14px/1.45 -apple-system,BlinkMacSystemFont,"SF Pro Text",Inter,Segoe UI,sans-serif;-webkit-font-smoothing:antialiased}
+.app{display:flex;min-height:100vh}
+aside{width:210px;background:var(--side);border-right:1px solid var(--line);padding:18px 12px;flex:0 0 210px}
+aside h4{margin:0 0 10px 6px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--t3)}
+.sb{display:flex;align-items:center;gap:10px;padding:7px 6px;border-radius:8px;color:var(--t2);cursor:pointer;font-size:13px}
+.sb:hover,.sb.on{background:#1c222a;color:var(--t1)}.sb .n{margin-left:auto;font-size:11px;color:var(--t3)}
+main{flex:1;min-width:0;padding:22px 22px 40px;padding-top:max(22px,env(safe-area-inset-top))}
+h1{margin:0;font-size:22px;font-weight:650;letter-spacing:-.01em}.sub{color:var(--t2);margin-top:4px}.sum{color:var(--t3);font-size:12.5px;margin-top:8px}
+.cols{display:grid;grid-template-columns:minmax(240px,1fr) minmax(380px,2.1fr) minmax(240px,1fr);gap:14px;margin-top:18px;align-items:start}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px}
+.ph{display:flex;align-items:center;gap:8px;margin-bottom:10px}.ph b{font-size:15px}.cnt{background:#222a33;color:var(--t2);border-radius:99px;padding:0 8px;font-size:11.5px}
+.av{border-radius:50%;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.wc{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px;display:flex;gap:10px;margin-bottom:8px}
+.meta{display:flex;flex-wrap:wrap;gap:6px;align-items:baseline;font-size:11.5px}.bn{color:var(--t2);font-weight:600}.tm{color:var(--t3)}
+.uv{color:var(--warn);border:1px solid #5a4314;border-radius:99px;padding:0 6px;font-size:10.5px}.due{color:var(--warn);font-size:11.5px;margin-top:4px}
+.wt{font-weight:650;margin-top:2px}.wd{color:var(--t3);font-size:12.5px;margin-top:2px}
+.tabs{display:flex;flex-wrap:wrap;gap:4px;background:#0f1216;border:1px solid var(--line);border-radius:9px;padding:3px}
+.tabs button{flex:1 1 auto;background:none;border:0;color:var(--t2);font:inherit;font-size:12.5px;padding:5px 10px;border-radius:7px;cursor:pointer;white-space:nowrap}
+.tabs button.on{background:#262e38;color:var(--t1)}
+select{background:#0f1216;color:var(--t1);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font:inherit;font-size:12.5px}
+.tlbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:6px}.tlbar .tabs{flex:1}
+.dh{font-weight:650;font-size:13px;padding:12px 0 6px;border-bottom:1px solid var(--line);color:var(--t1)}
+.row{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid #1d232a}
+.row .tm{flex:0 0 60px;padding-top:3px;font-size:11.5px}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--t2);background:#1f262e;border-radius:99px;padding:1px 8px}
+.chip i{width:6px;height:6px;border-radius:50%}
+.tx{margin-top:3px}.foot{color:var(--t3);font-size:11.5px;margin-top:10px}
+.mtabs{display:none}
+.lock{max-width:360px;margin:20vh auto;text-align:center;color:var(--t2)}
+@media(max-width:1000px){aside{display:none}}
+@media(max-width:760px){main{padding:16px 12px 40px;padding-top:max(16px,env(safe-area-inset-top))}
+ .mtabs{display:flex;position:sticky;top:0;z-index:5;margin:14px 0 0;background:rgba(11,13,16,.92);backdrop-filter:blur(10px)}
+ .cols{display:block;margin-top:12px}.mtabs .tabs{width:100%}.tlbar{flex-direction:column;align-items:stretch}.tlbar .tabs{flex-wrap:nowrap;overflow-x:auto}.panel{display:none}.panel.show{display:block}}
+</style></head><body><div id="root"></div>
+<script>
+const PAL=["#4c9aff","#a78bfa","#34d399","#f472b6","#fbbf24","#60a5fa","#fb7185","#2dd4bf","#f97316","#c084fc","#84cc16"];
+const DOW={"Oct 24":"Sat","Oct 23":"Fri","Oct 22":"Thu","Oct 21":"Wed","Oct 20":"Tue","Oct 19":"Mon","Oct 18":"Sun"};
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const b64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+async function load(){
+  const k=new URLSearchParams(location.hash.slice(1)).get("k");
+  if(!k) return null;
+  const enc=await (await fetch("data.enc.json?"+Date.now(),{cache:"no-store"})).json();
+  const key=await crypto.subtle.importKey("raw",b64(k.replace(/-/g,"+").replace(/_/g,"/")),"AES-GCM",false,["decrypt"]);
+  const pt=await crypto.subtle.decrypt({name:"AES-GCM",iv:b64(enc.iv)},key,b64(enc.ct));
+  return JSON.parse(new TextDecoder().decode(pt));
+}
+let D,S={day:"all",bot:"all",task:"done",m:"timeline"};
+const col=b=>PAL[(D.bots[b]?.color??0)%PAL.length], ic=b=>D.bots[b]?.icon??"•";
+const av=(b,s)=>`<div class="av" style="width:${s}px;height:${s}px;background:${col(b)}26;box-shadow:inset 0 0 0 1.5px ${col(b)};font-size:${Math.round(s*.52)}px">${ic(b)}</div>`;
+const chip=b=>`<span class="chip"><i style="background:${col(b)}"></i>${esc(b)}</span>`;
+const tabs=(opts,cur,key)=>`<div class="tabs">${opts.map(([v,l])=>`<button class="${v===cur?"on":""}" onclick="S.${key}='${v}';R()">${l}</button>`).join("")}</div>`;
+function R(){
+  const bots=Object.keys(D.bots), dates=[...new Set(D.timeline.map(e=>e.date))];
+  const cnt=b=>D.timeline.filter(e=>e.bot===b).length;
+  const ev=D.timeline.filter(e=>(S.day==="all"||e.date===S.day)&&(S.bot==="all"||e.bot===S.bot));
+  const groups=[...new Set(ev.map(e=>e.date))];
+  const dayOpts=[["all","All"],...dates.slice(0,4).map(d=>[d,d===D.today?"Today":`${DOW[d]||""} ${d.split(" ")[1]}`])];
+  const tasks=S.task==="done"?D.finished:D.inProgress;
+  document.getElementById("root").innerHTML=`<div class="app">
+  <aside><h4>Bots</h4>
+   <div class="sb ${S.bot==="all"?"on":""}" onclick="S.bot='all';R()"><div class="av" style="width:24px;height:24px;background:#222a33;font-size:12px">✦</div>All bots<span class="n">${D.timeline.length}</span></div>
+   ${bots.map(b=>`<div class="sb ${S.bot===b?"on":""}" onclick="S.bot='${esc(b)}';S.m='timeline';R()">${av(b,24)}${esc(b)}<span class="n">${cnt(b)||""}</span></div>`).join("")}
+  </aside>
+  <main>
+   <h1>Bot Activity Dashboard</h1>
+   <div class="sub">What your bots did this week, what is still running, and what waits on you.</div>
+   <div class="sum">As of ${esc(D.lastUpdated)} · ${bots.length} bots active · ${D.waiting.length} items waiting on you. ${esc(D.first||"")}</div>
+   <div class="mtabs">${tabs([["waiting",`Waiting ${D.waiting.length}`],["timeline","Timeline"],["tasks","Tasks"]],S.m,"m")}</div>
+   <div class="cols">
+    <section class="panel ${S.m==="waiting"?"show":""}"><div class="ph"><b>Waiting for Harish</b><span class="cnt">${D.waiting.length}</span></div>
+     ${D.waiting.map(w=>`<div class="wc">${av(w.bot,28)}<div style="min-width:0;flex:1"><div class="meta"><span class="bn">${esc(w.bot)}</span>${w.time?`<span class="tm">${esc(w.time)}</span>`:""}${w.verified?"":`<span class="uv">unverified</span>`}</div><div class="wt">${esc(w.title)}</div><div class="wd">${esc(w.detail)}</div>${w.due?`<div class="due">Due ${esc(w.due)}</div>`:""}</div></div>`).join("")}
+    </section>
+    <section class="panel ${S.m==="timeline"?"show":""}"><div class="ph"><b>Timeline</b><span class="cnt">${ev.length}</span></div>
+     <div class="tlbar">${tabs(dayOpts,S.day,"day")}<select onchange="S.bot=this.value;R()"><option value="all">All bots</option>${bots.map(b=>`<option ${S.bot===b?"selected":""}>${esc(b)}</option>`).join("")}</select></div>
+     ${groups.map(g=>`<div class="dh">${DOW[g]||""} ${g}</div>${ev.filter(e=>e.date===g).map(e=>`<div class="row"><span class="tm">${esc(e.time)}</span>${av(e.bot,24)}<div style="min-width:0;flex:1">${chip(e.bot)}<div class="tx">${esc(e.text)}</div></div></div>`).join("")}`).join("")}
+     <div class="foot">All times IST.</div>
+    </section>
+    <section class="panel ${S.m==="tasks"?"show":""}"><div class="ph"><b>${S.task==="done"?"Finished":"In progress"}</b></div>
+     ${tabs([["prog",`In progress ${D.inProgress.length}`],["done",`Finished ${D.finished.length}`]],S.task,"task")}
+     ${tasks.map(r=>`<div class="row">${av(r.bot,24)}<div style="min-width:0;flex:1"><div class="meta"><span class="bn">${esc(r.bot)}</span><span class="tm">${esc(r.time)}</span></div><div class="tx">${S.task==="done"?"✓ ":""}${esc(r.title)}</div></div></div>`).join("")}
+     <div class="foot">Quiet this week: ${esc(D.idleChecked.join(", "))}.</div>
+    </section>
+   </div></main></div>`;
+}
+load().then(d=>{if(!d)throw 0;D=d;R()}).catch(()=>{document.getElementById("root").innerHTML='<div class="lock">🔒<br>This dashboard needs its private link.</div>'});
+</script></body></html>
